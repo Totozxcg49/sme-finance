@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}สเตทเมนต์บัญชีการเงิน - SME Financial Management System{% endblock %}
+
+{% block extra_head %}
+<style>
+/* Print Stylesheet for Statement */
+@media print {
+    .top-navbar, .mobile-bottom-nav, .filter-bar, .no-print, .btn, footer {
+        display: none !important;
+    }
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+    }
+    .container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .card {
+        border: 1px solid #cccccc !important;
+        box-shadow: none !important;
+        padding: 1rem !important;
+    }
+    .print-header {
+        display: block !important;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #000;
+        padding-bottom: 0.5rem;
+    }
+    .desktop-table-container {
+        display: block !important;
+    }
+    .mobile-feed {
+        display: none !important;
+    }
+    table {
+        min-width: 100% !important;
+        font-size: 11pt !important;
+    }
+    th, td {
+        padding: 6px 10px !important;
+        border: 1px solid #dddddd !important;
+    }
+}
+
+.print-header {
+    display: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Print Header (Visible only when printed) -->
+<div class="print-header">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h1 style="font-size: 1.4rem; font-weight: 700;">ใบแสดงรายการเดินบัญชี (Financial Statement)</h1>
+            <p style="font-size: 0.95rem; margin-top: 0.2rem;"><strong>ชื่อธุรกิจ:</strong> {{ business_name }}</p>
+            <p style="font-size: 0.85rem; color: #555;">วันที่พิมพ์เอกสาร: {{ today }}</p>
+        </div>
+        <div style="text-align: right;">
+            <p style="font-size: 0.85rem;"><strong>SME Financial Management System</strong></p>
+            <p style="font-size: 0.8rem; color: #666;">ช่วงเวลา: {{ start_date if start_date else 'ทั้งหมด' }} ถึง {{ end_date if end_date else 'ปัจจุบัน' }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- Screen Header -->
+<div class="page-header no-print">
+    <div>
+        <h1 class="page-title">📑 สเตทเมนต์บัญชีการเงิน (Statement)</h1>
+        <p class="page-subtitle">แสดงรายการเวลาของเงินอย่างละเอียด ลำดับเวลา ยอดเงินเข้า-ออก และยอดคงเหลือสะสมสุทธิ</p>
+    </div>
+    <div class="page-header-actions">
+        <button onclick="window.print()" class="btn btn-secondary" style="border: 1.5px solid var(--primary); color: var(--primary);">
+            <span>🖨️</span> พิมพ์ Statement
+        </button>
+        <a href="{{ url_for('transactions') }}" class="btn btn-primary">
+            <span>➕</span> บันทึกรายการ
+        </a>
+    </div>
+</div>
+
+<!-- Statement Summary KPI Cards -->
+<div class="kpi-grid">
+    <!-- Opening Balance -->
+    <div class="kpi-card" style="border-left: 5px solid #64748b;">
+        <div class="kpi-header">
+            <span class="kpi-title">ยอดเงินยกมา (Opening)</span>
+            <div class="kpi-icon-pill" style="background: #f1f5f9; color: #475569;">🏦</div>
+        </div>
+        <div class="kpi-value" style="color: #334155;">฿{{ "{:,.2f}".format(statement.opening_balance) }}</div>
+        <div class="kpi-badge">ยอดคงเหลือก่อนช่วงเวลาที่เลือก</div>
+    </div>
+
+    <!-- Total Inflow -->
+    <div class="kpi-card kpi-card-income">
+        <div class="kpi-header">
+            <span class="kpi-title">ยอดเงินเข้ารวม (Credit)</span>
+            <div class="kpi-icon-pill">🟢</div>
+        </div>
+        <div class="kpi-value text-income">+฿{{ "{:,.2f}".format(statement.period_inflow) }}</div>
+        <div class="kpi-badge">รายรับทั้งหมดในช่วงเวลา</div>
+    </div>
+
+    <!-- Total Outflow -->
+    <div class="kpi-card kpi-card-expense">
+        <div class="kpi-header">
+            <span class="kpi-title">ยอดเงินออกรวม (Debit)</span>
+            <div class="kpi-icon-pill">🔴</div>
+        </div>
+        <div class="kpi-value text-expense">-฿{{ "{:,.2f}".format(statement.period_outflow) }}</div>
+        <div class="kpi-badge">รายจ่ายทั้งหมดในช่วงเวลา</div>
+    </div>
+
+    <!-- Closing Balance -->
+    <div class="kpi-card kpi-card-profit">
+        <div class="kpi-header">
+            <span class="kpi-title">ยอดคงเหลือสุทธิ (Closing)</span>
+            <div class="kpi-icon-pill">💼</div>
+        </div>
+        <div class="kpi-value" style="color: {{ '#10b981' if statement.closing_balance >= 0 else '#e11d48' }};">
+            ฿{{ "{:,.2f}".format(statement.closing_balance) }}
+        </div>
+        <div class="kpi-badge">เงินคงเหลือในกิจการ ณ ปัจจุบัน</div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card no-print" style="padding: 1.15rem; margin-bottom: 1.25rem;">
+    <form method="GET" action="{{ url_for('statement') }}" class="filter-bar" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
+        <div class="filter-group" style="flex: 1; min-width: 150px;">
+            <label for="start_date">ตั้งแต่วันที่:</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}">
+        </div>
+
+        <div class="filter-group" style="flex: 1; min-width: 150px;">
+            <label for="end_date">ถึงวันที่:</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}">
+        </div>
+
+        <div class="filter-group" style="flex: 1; min-width: 160px;">
+            <label for="payment_method">ช่องทางการเงิน:</label>
+            <select name="payment_method" id="payment_method">
+                <option value="all" {% if payment_method == 'all' %}selected{% endif %}>ทุกช่องทาง</option>
+                <option value="โอนเงิน" {% if payment_method == 'โอนเงิน' %}selected{% endif %}>📱 โอนเงินผ่านแอป</option>
+                <option value="สแกน QR Code" {% if payment_method == 'สแกน QR Code' %}selected{% endif %}>📲 สแกน QR Code</option>
+                <option value="เงินสด" {% if payment_method == 'เงินสด' %}selected{% endif %}>💵 เงินสด</option>
+                <option value="บัตรเครดิต/เดบิต" {% if payment_method == 'บัตรเครดิต/เดบิต' %}selected{% endif %}>💳 บัตรเครดิต/เดบิต</option>
+                <option value="อื่นๆ" {% if payment_method == 'อื่นๆ' %}selected{% endif %}>🔘 อื่นๆ</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 160px;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="flex: 1;">🔍 กรองข้อมูล</button>
+            <a href="{{ url_for('statement') }}" class="btn btn-secondary btn-sm" style="flex: 1;">ล้างค่า</a>
+        </div>
+    </form>
+</div>
+
+<!-- Statement Transactions Table / Cards -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>📜</span> รายการเดินบัญชี (Statement Records)</h2>
+        <span style="font-size: 0.85rem; color: var(--muted); font-weight: 500;">
+            รวมทั้งหมด {{ statement.total_count }} รายการ
+        </span>
+    </div>
+
+    {% if statement.transactions %}
+    <!-- 1. Desktop Statement Table -->
+    <div class="desktop-table-container">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">วัน-เวลา</th>
+                        <th style="width: 130px;">ช่องทางการเงิน</th>
+                        <th style="width: 160px;">หมวดหมู่</th>
+                        <th>รายละเอียด</th>
+                        <th style="text-align: right; width: 130px;">เงินเข้า (Credit)</th>
+                        <th style="text-align: right; width: 130px;">เงินออก (Debit)</th>
+                        <th style="text-align: right; width: 150px; background-color: #f1f5f9;">ยอดคงเหลือสะสม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in statement.transactions %}
+                    <tr>
+                        <td style="color: var(--dark-800); font-weight: 500; font-size: 0.85rem; white-space: nowrap;">
+                            {{ item.trans_date }}<br>
+                            <span style="color: var(--muted); font-size: 0.8rem;">⏰ {{ item.trans_time }} น.</span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: #f1f5f9; color: var(--dark-700); font-weight: 500;">
+                                {{ item.payment_method }}
+                            </span>
+                        </td>
+                        <td><strong>{{ item.category }}</strong></td>
+                        <td style="color: var(--muted);">{{ item.note if item.note else '-' }}</td>
+                        
+                        <!-- Credit Column -->
+                        <td style="text-align: right;">
+                            {% if item.type == 'income' %}
+                                <span class="amount-income">+฿{{ "{:,.2f}".format(item.amount) }}</span>
+                            {% else %}
+                                <span style="color: #cbd5e1;">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Debit Column -->
+                        <td style="text-align: right;">
+                            {% if item.type == 'expense' %}
+                                <span class="amount-expense">-฿{{ "{:,.2f}".format(item.amount) }}</span>
+                            {% else %}
+                                <span style="color: #cbd5e1;">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Running Balance Column (สเตทเมนต์) -->
+                        <td style="text-align: right; font-weight: 700; font-family: var(--font-en); background-color: #f8fafc;" class="{{ 'text-income' if item.running_balance >= 0 else 'text-expense' }}">
+                            ฿{{ "{:,.2f}".format(item.running_balance) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. Mobile Passbook Statement Feed (Wallet Style for Phones) -->
+    <div class="mobile-feed">
+        {% for item in statement.transactions %}
+        <div class="feed-item" style="flex-direction: column; align-items: stretch; gap: 0.65rem;">
+            <!-- Top line: Date, Time & Payment Method -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border); padding-bottom: 0.4rem;">
+                <span style="font-size: 0.8rem; color: var(--muted); font-weight: 500;">
+                    📅 {{ item.trans_date }} &bull; ⏰ {{ item.trans_time }} น.
+                </span>
+                <span class="badge" style="background: #f1f5f9; color: var(--dark-700); font-size: 0.725rem;">
+                    {{ item.payment_method }}
+                </span>
+            </div>
+
+            <!-- Middle line: Category, Note & Transaction Amount -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div class="feed-icon {{ 'income-icon' if item.type == 'income' else 'expense-icon' }}" style="width: 38px; height: 38px; font-size: 1.1rem;">
+                        {{ '💰' if item.type == 'income' else '🧾' }}
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--dark-900); font-size: 0.925rem;">{{ item.category }}</div>
+                        <div style="font-size: 0.775rem; color: var(--muted);">{{ item.note if item.note else (item.type == 'income' and 'รายรับ' or 'รายจ่าย') }}</div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="{{ 'amount-income' if item.type == 'income' else 'amount-expense' }}" style="font-size: 1.05rem;">
+                        {{ '+' if item.type == 'income' else '-' }}฿{{ "{:,.2f}".format(item.amount) }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom line: Running Balance Badge -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.4rem 0.65rem; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                <span style="color: var(--muted); font-weight: 500; white-space: nowrap;">ยอดคงเหลือสะสม:</span>
+                <strong style="font-family: var(--font-en); font-size: 0.9rem; white-space: nowrap;" class="{{ 'text-income' if item.running_balance >= 0 else 'text-expense' }}">
+                    ฿{{ "{:,.2f}".format(item.running_balance) }}
+                </strong>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📜</div>
+        <p style="font-weight: 600; color: var(--dark-900);">ไม่พบรายการเดินบัญชีในช่วงเวลาที่เลือก</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">ลองเปลี่ยนตัวกรอง หรือเริ่มต้นบันทึกรายการรายรับ-รายจ่าย</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

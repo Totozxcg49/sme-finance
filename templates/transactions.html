@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการรายรับ-รายจ่าย - SME Financial Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">จัดการรายการรายรับ-รายจ่าย</h1>
+        <p class="page-subtitle">บันทึกธุรกรรมพร้อมเวลา ช่องทางการเงิน และคำนวณยอดเงินคงเหลือสะสม</p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ url_for('statement') }}" class="btn btn-secondary" style="border: 1.5px solid var(--primary); color: var(--primary);">
+            <span>📑</span> ดูสเตทเมนต์บัญชีการเงิน
+        </a>
+    </div>
+</div>
+
+<!-- Card สำหรับบันทึกรายการใหม่ -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>➕</span> บันทึกรายการใหม่</h2>
+    </div>
+    <form action="{{ url_for('add_transaction') }}" method="POST">
+        <!-- Interactive Segmented Type Switcher -->
+        <div style="margin-bottom: 1.15rem;">
+            <label style="margin-bottom: 0.4rem; display: block;">ประเภทรายการ *</label>
+            <div class="segmented-control">
+                <label class="segmented-option">
+                    <input type="radio" name="type" value="income" checked onchange="updateCategories()">
+                    <span class="segmented-label income-label">
+                        <span>🟢</span> รายรับ (Income)
+                    </span>
+                </label>
+                <label class="segmented-option">
+                    <input type="radio" name="type" value="expense" onchange="updateCategories()">
+                    <span class="segmented-label expense-label">
+                        <span>🔴</span> รายจ่าย (Expense)
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="trans_date">วันที่ทำรายการ *</label>
+                <input type="date" id="trans_date" name="trans_date" value="{{ today }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="trans_time">เวลาที่เงินเข้า/ออก *</label>
+                <input type="time" id="trans_time" name="trans_time" required>
+            </div>
+
+            <div class="form-group">
+                <label for="payment_method">ช่องทางการเงิน *</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="โอนเงิน">📱 โอนเงินผ่านแอป (Mobile Banking)</option>
+                    <option value="สแกน QR Code">📲 สแกน QR Code พร้อมเพย์</option>
+                    <option value="เงินสด">💵 เงินสด (Cash)</option>
+                    <option value="บัตรเครดิต/เดบิต">💳 บัตรเครดิต / เดบิต</option>
+                    <option value="อื่นๆ">🔘 อื่นๆ</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="category">หมวดหมู่รายการ *</label>
+                <select id="category" name="category" required>
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">จำนวนเงิน (บาท) *</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="note">รายละเอียดเพิ่มเติม (ถ้ามี)</label>
+                <input type="text" id="note" name="note" placeholder="เช่น ขายสินค้าหน้าร้าน, ซื้อวัตถุดิบแพ็กเกจจิ้ง">
+            </div>
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" style="min-width: 170px;">
+                <span>💾</span> บันทึกรายการ
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Card แสดงตารางรายการทั้งหมด -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>📋</span> ประวัติรายการทั้งหมด (พร้อมยอดคงเหลือ)</h2>
+        <span style="font-size: 0.85rem; color: var(--muted); font-weight: 500;">
+            พบ {{ transactions|length }} รายการ
+        </span>
+    </div>
+
+    <!-- Filter Bar -->
+    <form method="GET" action="{{ url_for('transactions') }}" class="filter-bar">
+        <div class="filter-group">
+            <label for="filter_type">ประเภท:</label>
+            <select name="type" id="filter_type">
+                <option value="all" {% if current_type == 'all' %}selected{% endif %}>ทั้งหมด</option>
+                <option value="income" {% if current_type == 'income' %}selected{% endif %}>🟢 รายรับ</option>
+                <option value="expense" {% if current_type == 'expense' %}selected{% endif %}>🔴 รายจ่าย</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="filter_payment">ช่องทาง:</label>
+            <select name="payment_method" id="filter_payment">
+                <option value="all" {% if payment_method == 'all' %}selected{% endif %}>ทุกช่องทาง</option>
+                <option value="โอนเงิน" {% if payment_method == 'โอนเงิน' %}selected{% endif %}>📱 โอนเงิน</option>
+                <option value="สแกน QR Code" {% if payment_method == 'สแกน QR Code' %}selected{% endif %}>📲 QR Code</option>
+                <option value="เงินสด" {% if payment_method == 'เงินสด' %}selected{% endif %}>💵 เงินสด</option>
+                <option value="บัตรเครดิต/เดบิต" {% if payment_method == 'บัตรเครดิต/เดบิต' %}selected{% endif %}>💳 บัตร</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="start_date">ตั้งแต่วันที่:</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}">
+        </div>
+
+        <div class="filter-group">
+            <label for="end_date">ถึงวันที่:</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 160px;">
+            <button type="submit" class="btn btn-secondary btn-sm" style="flex: 1;">🔍 กรองข้อมูล</button>
+            <a href="{{ url_for('transactions') }}" class="btn btn-secondary btn-sm" style="flex: 1;">ล้างค่า</a>
+        </div>
+    </form>
+
+    {% if transactions %}
+    <!-- 1. Desktop Table View -->
+    <div class="desktop-table-container">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 140px;">วัน-เวลา</th>
+                        <th style="width: 120px;">ช่องทาง</th>
+                        <th style="width: 90px;">ประเภท</th>
+                        <th style="width: 160px;">หมวดหมู่</th>
+                        <th>รายละเอียด</th>
+                        <th style="text-align: right; width: 130px;">จำนวนเงิน</th>
+                        <th style="text-align: right; width: 140px; background-color: #f1f5f9;">ยอดคงเหลือ</th>
+                        <th style="text-align: center; width: 130px;">การจัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in transactions %}
+                    <tr>
+                        <td style="color: var(--dark-800); font-size: 0.85rem; white-space: nowrap;">
+                            {{ item.trans_date }}<br>
+                            <span style="color: var(--muted); font-size: 0.8rem;">⏰ {{ item.trans_time }} น.</span>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: #f1f5f9; color: var(--dark-700); font-weight: 500;">
+                                {{ item.payment_method }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if item.type == 'income' %}
+                                <span class="badge badge-income">● รายรับ</span>
+                            {% else %}
+                                <span class="badge badge-expense">● รายจ่าย</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.category }}</strong></td>
+                        <td style="color: var(--muted);">{{ item.note if item.note else '-' }}</td>
+                        <td style="text-align: right;" class="{{ 'amount-income' if item.type == 'income' else 'amount-expense' }}">
+                            {{ '+' if item.type == 'income' else '-' }}฿{{ "{:,.2f}".format(item.amount) }}
+                        </td>
+                        <td style="text-align: right; font-weight: 700; font-family: var(--font-en); background-color: #f8fafc;" class="{{ 'text-income' if item.running_balance >= 0 else 'text-expense' }}">
+                            ฿{{ "{:,.2f}".format(item.running_balance) }}
+                        </td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <a href="{{ url_for('edit_transaction', trans_id=item.id) }}" class="btn btn-secondary btn-sm" title="แก้ไข">✏️ แก้ไข</a>
+                            <form action="{{ url_for('delete_transaction', trans_id=item.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('ยืนยันว่าต้องการลบรายการนี้?');">
+                                <button type="submit" class="btn btn-danger btn-sm" title="ลบ">🗑️ ลบ</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. Mobile Feed Cards View (Fintech Style) -->
+    <div class="mobile-feed">
+        {% for item in transactions %}
+        <div class="feed-item" style="flex-direction: column; align-items: stretch; gap: 0.65rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border); padding-bottom: 0.35rem;">
+                <span style="font-size: 0.8rem; color: var(--muted); font-weight: 500; white-space: nowrap;">
+                    📅 {{ item.trans_date }} &bull; ⏰ {{ item.trans_time }} น.
+                </span>
+                <span class="badge" style="background: #f1f5f9; color: var(--dark-700); font-size: 0.725rem; white-space: nowrap;">
+                    {{ item.payment_method }}
+                </span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div class="feed-icon {{ 'income-icon' if item.type == 'income' else 'expense-icon' }}" style="width: 38px; height: 38px; font-size: 1.1rem;">
+                        {{ '💰' if item.type == 'income' else '🧾' }}
+                    </div>
+                    <div class="feed-details">
+                        <span class="feed-title">{{ item.category }}</span>
+                        <span class="feed-subtitle">{{ item.note if item.note else (item.type == 'income' and 'รายรับ' or 'รายจ่าย') }}</span>
+                    </div>
+                </div>
+                <div class="feed-right">
+                    <span class="feed-amount {{ 'amount-income' if item.type == 'income' else 'amount-expense' }}">
+                        {{ '+' if item.type == 'income' else '-' }}฿{{ "{:,.2f}".format(item.amount) }}
+                    </span>
+                    <div class="feed-actions">
+                        <a href="{{ url_for('edit_transaction', trans_id=item.id) }}" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.5rem; min-height: 28px; font-size: 0.75rem;">✏️</a>
+                        <form action="{{ url_for('delete_transaction', trans_id=item.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('ยืนยันว่าต้องการลบรายการนี้?');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.2rem 0.5rem; min-height: 28px; font-size: 0.75rem;">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Running Balance Pill -->
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                <span style="color: var(--muted); white-space: nowrap;">ยอดคงเหลือสะสม:</span>
+                <strong style="font-family: var(--font-en); white-space: nowrap;" class="{{ 'text-income' if item.running_balance >= 0 else 'text-expense' }}">
+                    ฿{{ "{:,.2f}".format(item.running_balance) }}
+                </strong>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p style="font-weight: 600; color: var(--dark-900);">ไม่พบรายการธุรกรรมในช่วงเวลาที่เลือก</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">ลองเปลี่ยนตัวกรอง หรือเริ่มบันทึกรายการจากแบบฟอร์มด้านบน</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const incomeCategories = [
+    "ขายสินค้าหน้าร้าน",
+    "ขายสินค้าออนไลน์",
+    "ค่าบริการ / จ้างงาน",
+    "ผลตอบแทนจากการลงทุน",
+    "รายรับอื่นๆ"
+];
+
+const expenseCategories = [
+    "ซื้อวัตถุดิบ / สินค้า",
+    "ค่าเช่าสถานที่",
+    "เงินเดือน / ค่าจ้างพนักงาน",
+    "ค่าน้ำ / ค่าไฟ / อินเทอร์เน็ต",
+    "ค่าขนส่งและพัสดุ",
+    "ค่าการตลาดและโฆษณา",
+    "ค่าซ่อมบำรุงและอุปกรณ์",
+    "ค่าใช้จ่ายอื่นๆ"
+];
+
+function updateCategories(selectedCategory = null) {
+    const isIncome = document.querySelector('input[name="type"]:checked').value === 'income';
+    const categorySelect = document.getElementById('category');
+    const list = isIncome ? incomeCategories : expenseCategories;
+
+    categorySelect.innerHTML = '';
+    list.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        if (selectedCategory && cat === selectedCategory) {
+            option.selected = true;
+        }
+        categorySelect.appendChild(option);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateCategories();
+    // Default current time to time input
+    const timeInput = document.getElementById('trans_time');
+    if (timeInput && !timeInput.value) {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        timeInput.value = `${hours}:${minutes}`;
+    }
+});
+</script>
+{% endblock %}

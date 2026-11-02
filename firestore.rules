@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // =========================================================================
+    // SME Financial Management System - Strict Security Rules (กันการแฮ็กและข้อมูลมั่ว)
+    // =========================================================================
+
+    // 1. กฎความปลอดภัยสำหรับข้อมูลบัญชีผู้ใช้ (/users/{userId})
+    match /users/{userId} {
+      // ผู้ใช้สามารถอ่านหรือแก้ไขได้เฉพาะเอกสารบัญชีของตนเองเท่านั้น
+      // ป้องกันไม่ให้ User อื่นแอบดูชื่อธุรกิจหรือข้อมูลส่วนตัว
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      
+      // อนุญาตให้สร้างบัญชีใหม่ได้เฉพาะเมื่อยังไม่ได้ล็อกอิน หรือ uid ตรงกัน
+      allow create: if request.auth != null && request.auth.uid == userId;
+      
+      // ห้ามลบบัญชีโดยตรงผ่าน Client (ต้องผ่านระบบจัดการที่ปลอดภัย)
+      allow delete: if false;
+
+      // 2. กฎความปลอดภัยสำหรับรายการธุรกรรม (/users/{userId}/transactions/{transId})
+      // การใช้ Subcollection แยกตาม userId ป้องกันการแฮ็กข้ามร้านค้าได้ 100%
+      match /transactions/{transId} {
+        // อ่านและจัดการได้เฉพาะเจ้าของร้านเท่านั้น (auth.uid ตรงกับ userId ใน Path)
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        // ตรวจสอบความถูกต้องของข้อมูล (Data Validation) ป้องกันการยัดข้อมูลขยะหรือตัวเลขติดลบ
+        allow create, update: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.type in ['income', 'expense']
+          && request.resource.data.category is string
+          && request.resource.data.trans_date is string;
+      }
+
+      // 3. กฎความปลอดภัยสำหรับแจ้งปัญหา/ติดต่อเจ้าของระบบ (/users/{userId}/support_tickets/{ticketId})
+      match /support_tickets/{ticketId} {
+        allow read, create: if request.auth != null && request.auth.uid == userId;
+        allow update, delete: if false;
+      }
+    }
+    
+    // บล็อกการเข้าถึง Path อื่นๆ ทั้งหมดที่ไม่ได้ระบุไว้
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

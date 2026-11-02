@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}รายงานสรุปและวิเคราะห์ - SME Financial Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">รายงานสรุปและวิเคราะห์ธุรกิจ</h1>
+        <p class="page-subtitle">เจาะลึกผลประกอบการ สัดส่วนต้นทุน และแนวโน้มผลกำไรตามช่วงเวลา</p>
+    </div>
+</div>
+
+<!-- Report Period Filter Form -->
+<div class="card" style="padding: 1.25rem;">
+    <form method="GET" action="{{ url_for('reports') }}" class="filter-bar" style="background: transparent; border: none; padding: 0; margin-bottom: 0;">
+        <div class="filter-group" style="min-width: 170px; flex: 1;">
+            <label for="period_type">มุมมอง:</label>
+            <select name="period_type" id="period_type" onchange="togglePeriodInputs()">
+                <option value="monthly" {% if period_type == 'monthly' %}selected{% endif %}>📅 สรุปรายเดือน</option>
+                <option value="daily" {% if period_type == 'daily' %}selected{% endif %}>📆 สรุปรายวัน</option>
+                <option value="yearly" {% if period_type == 'yearly' %}selected{% endif %}>🗓️ สรุปรายปี</option>
+                <option value="all" {% if period_type == 'all' %}selected{% endif %}>🌐 ข้อมูลทั้งหมด</option>
+            </select>
+        </div>
+
+        <div class="filter-group" id="month_input_group" style="min-width: 170px; flex: 1; {% if period_type != 'monthly' %}display: none;{% endif %}">
+            <label for="selected_month">เลือกเดือน:</label>
+            <input type="month" id="selected_month" name="selected_month" value="{{ selected_month }}">
+        </div>
+
+        <div class="filter-group" id="date_input_group" style="min-width: 170px; flex: 1; {% if period_type != 'daily' %}display: none;{% endif %}">
+            <label for="selected_date">เลือกวันที่:</label>
+            <input type="date" id="selected_date" name="selected_date" value="{{ selected_date }}">
+        </div>
+
+        <div class="filter-group" id="year_input_group" style="min-width: 140px; flex: 1; {% if period_type != 'yearly' %}display: none;{% endif %}">
+            <label for="selected_year">เลือกปี (ค.ศ.):</label>
+            <input type="number" id="selected_year" name="selected_year" value="{{ selected_year }}" min="2000" max="2100">
+        </div>
+
+        <div style="flex: 1; min-width: 150px;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <span>📊</span> แสดงรายงาน
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Modern KPI Cards for the filtered period -->
+<div class="kpi-grid">
+    <div class="kpi-card kpi-card-income">
+        <div class="kpi-header">
+            <span class="kpi-title">รายรับงวดนี้</span>
+            <div class="kpi-icon-pill">📈</div>
+        </div>
+        <div class="kpi-value">฿{{ "{:,.2f}".format(period_income) }}</div>
+        <div class="kpi-badge">ยอดเงินเข้าในช่วงเวลาที่เลือก</div>
+    </div>
+
+    <div class="kpi-card kpi-card-expense">
+        <div class="kpi-header">
+            <span class="kpi-title">รายจ่ายงวดนี้</span>
+            <div class="kpi-icon-pill">📉</div>
+        </div>
+        <div class="kpi-value">฿{{ "{:,.2f}".format(period_expense) }}</div>
+        <div class="kpi-badge">ต้นทุนและค่าใช้จ่ายรวม</div>
+    </div>
+
+    <div class="kpi-card kpi-card-profit">
+        <div class="kpi-header">
+            <span class="kpi-title">กำไร/ขาดทุนสุทธิ</span>
+            <div class="kpi-icon-pill">💼</div>
+        </div>
+        <div class="kpi-value" style="color: {{ '#10b981' if period_profit >= 0 else '#e11d48' }};">
+            {{ '฿{:,.2f}'.format(period_profit) if period_profit >= 0 else '-฿{:,.2f}'.format(period_profit|abs) }}
+        </div>
+        <div class="kpi-badge">{{ '✨ ผลประกอบการเป็นกำไร' if period_profit >= 0 else '⚠️ ผลประกอบการขาดทุน' }}</div>
+    </div>
+</div>
+
+<!-- Category Breakdown Tables (2 Columns on desktop, 1 on mobile) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+    <!-- Income Category Breakdown -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title"><span>🟢</span> สรุปรายรับแยกตามหมวดหมู่</h2>
+        </div>
+        {% if income_by_category %}
+        <div class="table-responsive">
+            <table style="min-width: 100%;">
+                <thead>
+                    <tr>
+                        <th>หมวดหมู่</th>
+                        <th style="text-align: right;">จำนวนเงิน</th>
+                        <th style="text-align: right;">สัดส่วน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat, amt in income_by_category %}
+                    <tr>
+                        <td><strong>{{ cat }}</strong></td>
+                        <td style="text-align: right;" class="amount-income">฿{{ "{:,.2f}".format(amt) }}</td>
+                        <td style="text-align: right; color: var(--muted); font-weight: 600;">
+                            {{ "{:.1f}%".format((amt / period_income * 100) if period_income > 0 else 0) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>ไม่มีรายการรายรับในช่วงเวลานี้</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Expense Category Breakdown -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <h2 class="card-title"><span>🔴</span> สรุปรายจ่ายแยกตามหมวดหมู่</h2>
+        </div>
+        {% if expense_by_category %}
+        <div class="table-responsive">
+            <table style="min-width: 100%;">
+                <thead>
+                    <tr>
+                        <th>หมวดหมู่</th>
+                        <th style="text-align: right;">จำนวนเงิน</th>
+                        <th style="text-align: right;">สัดส่วน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat, amt in expense_by_category %}
+                    <tr>
+                        <td><strong>{{ cat }}</strong></td>
+                        <td style="text-align: right;" class="amount-expense">฿{{ "{:,.2f}".format(amt) }}</td>
+                        <td style="text-align: right; color: var(--muted); font-weight: 600;">
+                            {{ "{:.1f}%".format((amt / period_expense * 100) if period_expense > 0 else 0) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>ไม่มีรายการรายจ่ายในช่วงเวลานี้</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Timeline Breakdown Table -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>📅</span> สรุปผลประกอบการแยกตามช่วงเวลาย่อย</h2>
+    </div>
+    {% if timeline_rows %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 160px;">ช่วงเวลา</th>
+                    <th style="text-align: right; width: 140px;">รายรับ</th>
+                    <th style="text-align: right; width: 140px;">รายจ่าย</th>
+                    <th style="text-align: right; width: 150px;">ผลต่างสุทธิ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in timeline_rows %}
+                <tr>
+                    <td><strong>{{ row.period_label }}</strong></td>
+                    <td style="text-align: right;" class="amount-income">฿{{ "{:,.2f}".format(row.income) }}</td>
+                    <td style="text-align: right;" class="amount-expense">฿{{ "{:,.2f}".format(row.expense) }}</td>
+                    <td style="text-align: right; font-weight: 700; font-family: var(--font-en);" style="color: {{ '#10b981' if row.net >= 0 else '#e11d48' }};">
+                        {{ '฿{:,.2f}'.format(row.net) if row.net >= 0 else '-฿{:,.2f}'.format(row.net|abs) }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>ไม่มีข้อมูลสำหรับช่วงเวลานี้</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function togglePeriodInputs() {
+    const period = document.getElementById('period_type').value;
+    const monthGroup = document.getElementById('month_input_group');
+    const dateGroup = document.getElementById('date_input_group');
+    const yearGroup = document.getElementById('year_input_group');
+
+    monthGroup.style.display = period === 'monthly' ? 'flex' : 'none';
+    dateGroup.style.display = period === 'daily' ? 'flex' : 'none';
+    yearGroup.style.display = period === 'yearly' ? 'flex' : 'none';
+}
+</script>
+{% endblock %}

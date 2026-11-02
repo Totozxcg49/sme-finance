@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}ศูนย์ช่วยเหลือและติดต่อเจ้าของระบบ - SME Financial Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">💡 ศูนย์ช่วยเหลือและแนะนำการใช้งาน</h1>
+        <p class="page-subtitle">คู่มือการจัดการการเงิน SME และช่องทางแจ้งปัญหาเพื่อขอความช่วยเหลือจากผู้ดูแลระบบ</p>
+    </div>
+</div>
+
+<!-- 2 Column Layout for Desktop, Stacked on Mobile -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+    
+    <!-- Column 1: Help & Best Practice Guides (คำแนะนำการใช้งานและตอบคำถาม) -->
+    <div>
+        <div class="card" style="margin-bottom: 1.25rem;">
+            <div class="card-header">
+                <h2 class="card-title"><span>📘</span> คำแนะนำสำหรับเจ้าของธุรกิจ SME</h2>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="background: #f8fafc; border-left: 4px solid var(--primary); padding: 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--dark-900); margin-bottom: 0.25rem;">
+                        1. บันทึกธุรกรรมทันทีที่เกิดรายการ
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--muted);">
+                        การบันทึกรายรับและรายจ่ายในแต่ละวันเป็นประจำจะช่วยป้องกันการลืม และทำให้ตัวเลขกำไรบนแดชบอร์ดสะท้อนความเป็นจริงมากที่สุด
+                    </p>
+                </div>
+
+                <div style="background: #f8fafc; border-left: 4px solid var(--success); padding: 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--dark-900); margin-bottom: 0.25rem;">
+                        2. วิธีอ่านตัวเลขผลกำไรสุทธิ (Net Balance)
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--muted);">
+                        หากยอดแสดงเป็น <strong class="text-income">สีเขียว (+)</strong> แปลว่าธุรกิจมีกำไรสะสม หากแสดงเป็น <strong class="text-expense">สีแดง (-)</strong> แสดงว่าค่าใช้จ่ายสูงกว่ารายรับ ควรวางแผนลดต้นทุนในหมวดหมู่ที่ใช้เงินมากที่สุด
+                    </p>
+                </div>
+
+                <div style="background: #f8fafc; border-left: 4px solid var(--warning); padding: 1rem; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                    <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--dark-900); margin-bottom: 0.25rem;">
+                        3. วิเคราะห์สัดส่วนต้นทุนจากกราฟวงกลม
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--muted);">
+                        เปิดดูหน้าแดชบอร์ดเพื่อดูกราฟวงกลม สังเกตว่าค่าใช้จ่ายก้อนใหญ่หมดไปกับ "ซื้อวัตถุดิบ", "ค่าเช่า" หรือ "ค่าจ้าง" เพื่อนำไปต่อรองหรือบริหารจัดการ
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct Contact Info Card -->
+        <div class="card" style="background: linear-gradient(135deg, #ffffff 0%, #fff1f2 100%); border: 1.5px solid #fecdd3;">
+            <div class="card-header">
+                <h2 class="card-title" style="color: var(--primary-dark);"><span>📞</span> ช่องทางติดต่อด่วน</h2>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.9rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>💬 <strong>Line Support:</strong></span>
+                    <span style="color: var(--primary); font-weight: 600;">@smefinance-help</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>✉️ <strong>อีเมลผู้ดูแล:</strong></span>
+                    <span style="color: var(--primary); font-weight: 600;">support@smefinance.local</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span>⏰ <strong>เวลาทำการ:</strong></span>
+                    <span style="color: var(--muted);">จันทร์ - เสาร์ (08:30 - 18:00 น.)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column 2: Problem Report & Contact Form (ฟอร์มแจ้งปัญหา/ขอความช่วยเหลือ) -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title"><span>✉️</span> ส่งคำขอความช่วยเหลือถึงเจ้าของระบบ</h2>
+            </div>
+            
+            <form action="{{ url_for('support') }}" method="POST">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="topic">หัวข้อที่ต้องการความช่วยเหลือ *</label>
+                    <select id="topic" name="topic" required>
+                        <option value="พบปัญหาการบันทึกข้อมูล">⚠️ พบปัญหาการบันทึกหรือแก้ไขข้อมูล</option>
+                        <option value="สอบถามการคำนวณและรายงาน">📊 สอบถามสูตรการคำนวณตัวเลขและรายงาน</option>
+                        <option value="ขอคำปรึกษาการตั้งค่าระบบ">⚙️ ขอคำปรึกษาการตั้งค่าหรือบัญชีผู้ใช้</option>
+                        <option value="เสนอแนะฟีเจอร์ใหม่">💡 ข้อเสนอแนะฟีเจอร์เพิ่มเติม</option>
+                        <option value="อื่นๆ">❓ ปัญหาหรือข้อสงสัยอื่นๆ</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="message">รายละเอียดของปัญหาหรือข้อสงสัย *</label>
+                    <textarea id="message" name="message" rows="5" placeholder="อธิบายปัญหาที่คุณพบ เช่น บันทึกยอดเงินแล้วไม่แสดง, ต้องการให้เพิ่มหมวดหมู่พิเศษ หรือต้องการความช่วยเหลือเรื่องใด..." required style="resize: vertical;"></textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="contact_info">ข้อมูลติดต่อกลับ (เบอร์โทร, Line ID หรือ อีเมล) *</label>
+                    <input type="text" id="contact_info" name="contact_info" placeholder="เช่น 081-234-5678 หรือ line: @myline" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; box-shadow: var(--shadow-primary);">
+                    <span>🚀</span> ส่งข้อความถึงเจ้าหน้าที่
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- History of Support Tickets -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>📋</span> ประวัติคำขอความช่วยเหลือของคุณ</h2>
+        <span style="font-size: 0.85rem; color: var(--muted);">ทั้งหมด {{ tickets|length }} รายการ</span>
+    </div>
+
+    {% if tickets %}
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 150px;">วัน-เวลาที่ส่ง</th>
+                    <th style="width: 200px;">หัวข้อปัญหา</th>
+                    <th>ข้อความรายละเอียด</th>
+                    <th style="width: 160px;">ข้อมูลติดต่อกลับ</th>
+                    <th style="text-align: center; width: 130px;">สถานะ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in tickets %}
+                <tr>
+                    <td style="color: var(--muted); font-size: 0.85rem;">{{ item.created_at }}</td>
+                    <td><strong>{{ item.topic }}</strong></td>
+                    <td style="color: var(--dark-800);">{{ item.message }}</td>
+                    <td style="color: var(--muted);">{{ item.contact_info if item.contact_info else '-' }}</td>
+                    <td style="text-align: center;">
+                        <span class="badge" style="background: #fef3c7; color: #92400e; padding: 0.35rem 0.65rem;">
+                            ⏳ {{ item.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 2rem 1rem;">
+        <div class="empty-icon" style="font-size: 2rem;">💬</div>
+        <p style="font-weight: 600; color: var(--dark-900);">คุณยังไม่เคยส่งคำขอความช่วยเหลือ</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">หากพบปัญหาการใช้งาน สามารถพิมพ์ส่งผ่านแบบฟอร์มด้านบนได้ตลอด 24 ชม.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}แก้ไขรายการ - SME Financial Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">✏️ แก้ไขรายการธุรกรรม</h1>
+        <p class="page-subtitle">ปรับปรุงข้อมูลรายการหมายเลข #{{ trans.id }}</p>
+    </div>
+    <a href="{{ url_for('transactions') }}" class="btn btn-secondary">⬅️ กลับไปหน้ารายการ</a>
+</div>
+
+<div class="card" style="max-width: 680px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title"><span>📝</span> รายละเอียดรายการ</h2>
+    </div>
+    <form action="{{ url_for('edit_transaction', trans_id=trans.id) }}" method="POST">
+        <!-- Interactive Segmented Type Switcher -->
+        <div style="margin-bottom: 1.15rem;">
+            <label style="margin-bottom: 0.4rem; display: block;">ประเภทรายการ *</label>
+            <div class="segmented-control">
+                <label class="segmented-option">
+                    <input type="radio" name="type" value="income" {% if trans.type == 'income' %}checked{% endif %} onchange="updateCategories()">
+                    <span class="segmented-label income-label">
+                        <span>🟢</span> รายรับ (Income)
+                    </span>
+                </label>
+                <label class="segmented-option">
+                    <input type="radio" name="type" value="expense" {% if trans.type == 'expense' %}checked{% endif %} onchange="updateCategories()">
+                    <span class="segmented-label expense-label">
+                        <span>🔴</span> รายจ่าย (Expense)
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="trans_date">วันที่ทำรายการ *</label>
+                <input type="date" id="trans_date" name="trans_date" value="{{ trans.trans_date }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="trans_time">เวลาที่เงินเข้า/ออก *</label>
+                <input type="time" id="trans_time" name="trans_time" value="{{ trans.trans_time if trans.trans_time else '12:00' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="payment_method">ช่องทางการเงิน *</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="โอนเงิน" {% if trans.payment_method == 'โอนเงิน' %}selected{% endif %}>📱 โอนเงินผ่านแอป (Mobile Banking)</option>
+                    <option value="สแกน QR Code" {% if trans.payment_method == 'สแกน QR Code' %}selected{% endif %}>📲 สแกน QR Code พร้อมเพย์</option>
+                    <option value="เงินสด" {% if trans.payment_method == 'เงินสด' %}selected{% endif %}>💵 เงินสด (Cash)</option>
+                    <option value="บัตรเครดิต/เดบิต" {% if trans.payment_method == 'บัตรเครดิต/เดบิต' %}selected{% endif %}>💳 บัตรเครดิต / เดบิต</option>
+                    <option value="อื่นๆ" {% if trans.payment_method == 'อื่นๆ' %}selected{% endif %}>🔘 อื่นๆ</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="category">หมวดหมู่รายการ *</label>
+                <select id="category" name="category" required>
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">จำนวนเงิน (บาท) *</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0.01" value="{{ trans.amount }}" required>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="note">รายละเอียดเพิ่มเติม</label>
+                <input type="text" id="note" name="note" value="{{ trans.note if trans.note else '' }}">
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{{ url_for('transactions') }}" class="btn btn-secondary" style="flex: 1; max-width: 140px;">ยกเลิก</a>
+            <button type="submit" class="btn btn-primary" style="flex: 2; max-width: 220px;">
+                <span>💾</span> บันทึกการแก้ไข
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const incomeCategories = [
+    "ขายสินค้าหน้าร้าน",
+    "ขายสินค้าออนไลน์",
+    "ค่าบริการ / จ้างงาน",
+    "ผลตอบแทนจากการลงทุน",
+    "รายรับอื่นๆ"
+];
+
+const expenseCategories = [
+    "ซื้อวัตถุดิบ / สินค้า",
+    "ค่าเช่าสถานที่",
+    "เงินเดือน / ค่าจ้างพนักงาน",
+    "ค่าน้ำ / ค่าไฟ / อินเทอร์เน็ต",
+    "ค่าขนส่งและพัสดุ",
+    "ค่าการตลาดและโฆษณา",
+    "ค่าซ่อมบำรุงและอุปกรณ์",
+    "ค่าใช้จ่ายอื่นๆ"
+];
+
+function updateCategories() {
+    const isIncome = document.querySelector('input[name="type"]:checked').value === 'income';
+    const categorySelect = document.getElementById('category');
+    const currentCategory = "{{ trans.category }}";
+    const list = isIncome ? incomeCategories : expenseCategories;
+
+    categorySelect.innerHTML = '';
+    list.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        if (cat === currentCategory) {
+            option.selected = true;
+        }
+        categorySelect.appendChild(option);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateCategories();
+});
+</script>
+{% endblock %}

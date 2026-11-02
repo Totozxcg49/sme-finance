@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}SME Financial Management System{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Prompt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <!-- Top Header / Desktop Navbar -->
+    <header class="top-navbar">
+        <div class="nav-container">
+            <a href="{{ url_for('index') }}" class="brand">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SME Finance Logo" class="brand-logo-img">
+                <div class="brand-text">
+                    <span class="brand-title brand-title-full">SME Financial Management System</span>
+                    <span class="brand-title brand-title-short">SME Finance</span>
+                    <span class="brand-subtitle">ระบบบริหารจัดการรายรับ-รายจ่ายและวิเคราะห์กำไรสำหรับธุรกิจขนาดเล็ก</span>
+                </div>
+            </a>
+            
+            {% if session.get('user_id') %}
+            <!-- Desktop Nav Links for Logged-in User -->
+            <nav class="desktop-nav">
+                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+                    <span class="nav-icon">📊</span>
+                    <span>แดชบอร์ด</span>
+                </a>
+                <a href="{{ url_for('statement') }}" class="nav-item {% if request.endpoint == 'statement' %}active{% endif %}">
+                    <span class="nav-icon">📑</span>
+                    <span>สเตทเมนต์</span>
+                </a>
+                <a href="{{ url_for('transactions') }}" class="nav-item {% if request.endpoint in ['transactions', 'edit_transaction'] %}active{% endif %}">
+                    <span class="nav-icon">📝</span>
+                    <span>รายรับ-รายจ่าย</span>
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-item {% if request.endpoint == 'reports' %}active{% endif %}">
+                    <span class="nav-icon">📈</span>
+                    <span>รายงานสรุป</span>
+                </a>
+                <a href="{{ url_for('support') }}" class="nav-item {% if request.endpoint == 'support' %}active{% endif %}">
+                    <span class="nav-icon">💡</span>
+                    <span>ศูนย์ช่วยเหลือ</span>
+                </a>
+            </nav>
+
+            <!-- User Status & Logout -->
+            <div class="nav-actions">
+                <div class="user-badge" title="{{ session.get('business_name', session.get('username')) }}">
+                    <span class="user-badge-icon">🏪</span>
+                    <span class="user-badge-name">{{ session.get('business_name', session.get('username')) }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm nav-logout-btn" title="ออกจากระบบ">
+                    <span class="nav-logout-icon">🚪</span>
+                    <span class="nav-logout-text">ออกจากระบบ</span>
+                </a>
+            </div>
+            {% else %}
+            <!-- Guest Nav Links -->
+            <div class="nav-actions">
+                <a href="{{ url_for('login') }}" class="btn btn-secondary btn-sm">เข้าสู่ระบบ</a>
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">สมัครสมาชิก</a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="container">
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <div class="alert-icon">
+                                {% if category == 'success' %}✅{% elif category == 'danger' %}⚠️{% elif category == 'warning' %}🔔{% else %}ℹ️{% endif %}
+                            </div>
+                            <div class="alert-message">{{ message }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if session.get('user_id') %}
+    <!-- Modern Mobile Bottom Navigation Bar (Visible only when logged in) -->
+    <nav class="mobile-bottom-nav">
+        <a href="{{ url_for('index') }}" class="mobile-nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+            <div class="mobile-nav-icon">📊</div>
+            <span class="mobile-nav-label">แดชบอร์ด</span>
+        </a>
+        <a href="{{ url_for('statement') }}" class="mobile-nav-item {% if request.endpoint == 'statement' %}active{% endif %}">
+            <div class="mobile-nav-icon">📑</div>
+            <span class="mobile-nav-label">สเตทเมนต์</span>
+        </a>
+        <a href="{{ url_for('transactions') }}" class="mobile-nav-item {% if request.endpoint in ['transactions', 'edit_transaction'] %}active{% endif %}">
+            <div class="mobile-nav-icon">📝</div>
+            <span class="mobile-nav-label">รายการ</span>
+        </a>
+        <a href="{{ url_for('reports') }}" class="mobile-nav-item {% if request.endpoint == 'reports' %}active{% endif %}">
+            <div class="mobile-nav-icon">📈</div>
+            <span class="mobile-nav-label">รายงาน</span>
+        </a>
+        <a href="{{ url_for('support') }}" class="mobile-nav-item {% if request.endpoint == 'support' %}active{% endif %}">
+            <div class="mobile-nav-icon">💡</div>
+            <span class="mobile-nav-label">ช่วยเหลือ</span>
+        </a>
+    </nav>
+    {% endif %}
+
+    <footer class="footer">
+        <p><strong>SME Financial Management System</strong> &bull; ระบบบริหารจัดการรายรับ-รายจ่ายและวิเคราะห์กำไรสำหรับธุรกิจขนาดเล็ก</p>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
